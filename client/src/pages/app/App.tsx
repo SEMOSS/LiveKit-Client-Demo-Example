@@ -1,0 +1,54 @@
+import "../../index.css";
+import { useInsight } from "@semoss/sdk/react";
+import useFetchUserData from "../../hooks/useFetchUserData";
+import LiveKitContainer from "../../components/containers/livekit-container";
+
+import ModelsSidebarStatic from "../../components/containers/sidebar2";
+import MobileSidebar from "../../components/containers/mobile-sidebar";
+function App() {
+  const { isAuthorized } = useInsight();
+  const userStore = useFetchUserData();
+
+  const authMessage = isAuthorized
+    ? "User is authorized!"
+    : "User is not authorized!";
+
+  const noAuthJsx = (
+    <div className="text-red-500">
+      <p>{authMessage}</p>
+      <p>Please log in to continue.</p>
+    </div>
+  );
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center">
+        <header className="text-center">{noAuthJsx}</header>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="
+        min-h-svh
+        grid
+        grid-cols-1 md:grid-cols-[16rem_1fr] lg:grid-cols-[18rem_1fr]
+      "
+    >
+      <ModelsSidebarStatic />
+      <main className="flex min-w-0 flex-col">
+        <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
+          <MobileSidebar />
+          <h1 className="font-semibold">LiveKit Demo</h1>
+        </header>
+        <div className="flex-1 min-w-0 p-4">
+          <LiveKitContainer />
+          <div />
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default App;
