@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Button } from "../../@providers/components/ui/button";
 import {
@@ -13,6 +11,8 @@ import { Badge } from "../../@providers/components/ui/badge";
 import { Video, Users, Wifi, WifiOff, Mic } from "lucide-react";
 import { liveKitGetToken } from "../../pixels/pixel-calls";
 import { Room, RoomEvent } from "livekit-client";
+import { setLogLevel, LogLevel } from "livekit-client";
+setLogLevel(LogLevel.debug);
 
 type LiveKitContainerProps = {
   // Optional callback: your method to enable media. Receives the current Room (or null if not connected).
@@ -57,7 +57,13 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
       const response = await liveKitGetToken(finalRoomName);
       const token = response.jwt || (response["jwt"] as string);
 
-      await newRoom.connect("ws://localhost:8080", token);
+      const liveKitUrl = process.env.LIVEKIT_URL;
+
+      if (!liveKitUrl) {
+        throw new Error("LIVEKIT_URL is not defined in environment variables");
+      }
+
+      await newRoom.connect(liveKitUrl, token);
 
       setRoom(newRoom);
     } catch (err) {
@@ -207,7 +213,6 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
 
           {/* Connection Details */}
           <div className="text-xs text-muted-foreground text-center space-y-1">
-            <p>Server: ws://localhost:7800</p>
             <p>Using adaptive streaming and dynacast optimization</p>
           </div>
         </CardContent>
