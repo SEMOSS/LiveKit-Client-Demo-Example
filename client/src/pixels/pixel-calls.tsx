@@ -54,9 +54,9 @@ interface LiveKitTokenResponse {
 export const liveKitGetToken = async (
   roomName: string
 ): Promise<LiveKitTokenResponse> => {
-  let pixel = `LiveKitGetToken()`;
+  let pixel = `LiveKitJoinRoom()`;
   if (roomName != null) {
-    pixel = `LiveKitGetToken(roomId=["${roomName}"])`;
+    pixel = `LiveKitJoinRoom(roomId=["${roomName}"])`;
   }
   const { errors, pixelReturn } = await runPixel(pixel);
 
@@ -65,4 +65,14 @@ export const liveKitGetToken = async (
   }
   const { output } = pixelReturn[0];
   return output as LiveKitTokenResponse;
+};
+
+export const liveKitListRooms = async () => {
+  const pixel = `LiveKitListRoomsAdmin()`;
+  const { errors, pixelReturn } = await runPixel(pixel);
+  if (errors.length > 0) {
+    throw new Error(errors.join(""));
+  }
+  const { output } = pixelReturn[0];
+  return output;
 };
