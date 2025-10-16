@@ -1,3 +1,7 @@
+"use client";
+
+import type React from "react";
+
 import { useState } from "react";
 import { Button } from "../../@providers/components/ui/button";
 import {
@@ -38,8 +42,9 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
   const [roomState, setRoomState] = useState<Room | null>(null);
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+  const [transcriptionText, setTranscriptionText] = useState("");
 
-  const connectToExistingRoom = async (roomId: String) => {
+  const connectToExistingRoom = async (roomId: string) => {
     try {
       setIsConnecting(true);
       const existingRoom = new Room({
@@ -77,11 +82,36 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
         setRoom(null);
       });
 
+      newRoom.on(RoomEvent.DataReceived, (payload, participant) => {
+        const decoder = new TextDecoder();
+        const jsonString = decoder.decode(payload);
+        const data = JSON.parse(jsonString);
+
+        if (data.type === "transcription") {
+          console.log(
+            `Received transcription from ${participant?.identity}:`,
+            data.text
+          );
+
+          console.log(data);
+          setTranscriptionText((prev) => prev + (prev ? " " : "") + data.text);
+        }
+      });
+
       const finalRoomName = roomName.trim() || `room-${Date.now()}`;
       console.log("Room name: ", finalRoomName);
 
-      const response = await liveKitGetToken(finalRoomName);
+      const engineId = "8ec0d39f-d90d-4587-b44c-e62ab13df325";
+      const operation = "real_time_transcription";
+
+      const response = await liveKitGetToken(
+        engineId,
+        operation,
+        finalRoomName
+      );
       const token = response.jwt || (response["jwt"] as string);
+
+      console.log("Received token:", token);
 
       const liveKitUrl = process.env.LIVEKIT_URL;
 
@@ -127,6 +157,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
   const disconnectFromRoom = () => {
     if (room) {
       room.disconnect();
+      setTranscriptionText("");
     }
   };
 
@@ -258,6 +289,43 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
           </CardContent>
         </Card>
 
+        {isConnected && transcriptionText && (
+          <Card className="w-full shadow-lg overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl font-bold flex items-center gap-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                Live Transcription
+              </CardTitle>
+              <CardDescription>
+                Real-time speech-to-text from the room
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 animate-pulse rounded-lg" />
+                <div className="relative bg-gradient-to-br from-background to-muted/30 rounded-lg p-6 border border-primary/20 shadow-inner">
+                  <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+                    <p className="text-lg leading-relaxed text-foreground/90 font-medium tracking-wide animate-in fade-in duration-500">
+                      {transcriptionText}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                <span>{transcriptionText.split(" ").length} words</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTranscriptionText("")}
+                  className="h-7 text-xs"
+                >
+                  Clear
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="w-full shadow-lg">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -278,7 +346,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
               onClick={handleListRooms}
               disabled={isLoadingRooms}
               variant="outline"
-              className="w-full h-12 text-base font-medium"
+              className="w-full h-12 text-base font-medium bg-transparent"
               size="lg"
             >
               {isLoadingRooms ? (

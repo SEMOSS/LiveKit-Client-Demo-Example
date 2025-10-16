@@ -52,11 +52,13 @@ interface LiveKitTokenResponse {
 }
 
 export const liveKitGetToken = async (
+  engineId: string,
+  operation: string,
   roomName: string
 ): Promise<LiveKitTokenResponse> => {
   let pixel = `LiveKitJoinRoom()`;
   if (roomName != null) {
-    pixel = `LiveKitJoinRoom(roomId=["${roomName}"])`;
+    pixel = `LiveKitJoinRoom(engine=["${engineId}"], operation=["${operation}"], roomId=["${roomName}"])`;
   }
   const { errors, pixelReturn } = await runPixel(pixel);
 
@@ -69,6 +71,28 @@ export const liveKitGetToken = async (
 
 export const liveKitListRooms = async () => {
   const pixel = `LiveKitListRoomsAdmin()`;
+  const { errors, pixelReturn } = await runPixel(pixel);
+  if (errors.length > 0) {
+    throw new Error(errors.join(""));
+  }
+  const { output } = pixelReturn[0];
+  return output;
+};
+
+export const liveKitListParticipants = async () => {
+  const pixel = `LiveKitListParticipants()`;
+
+  const { errors, pixelReturn } = await runPixel(pixel);
+  if (errors.length > 0) {
+    throw new Error(errors.join(""));
+  }
+  const { output } = pixelReturn[0];
+  return output;
+};
+
+export const getAudioModels = async () => {
+  const pixel = `MyEngines(engineTypes = [ "MODEL" ]);`;
+
   const { errors, pixelReturn } = await runPixel(pixel);
   if (errors.length > 0) {
     throw new Error(errors.join(""));
