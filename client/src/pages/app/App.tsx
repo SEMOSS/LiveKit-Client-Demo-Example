@@ -32,17 +32,16 @@ function App() {
     <div
       className="
         min-h-svh
-        grid
-        grid-cols-1 md:grid-cols-[16rem_1fr] lg:grid-cols-[18rem_1fr]
+        
       "
     >
-      <ModelsSidebarStatic />
-      <main className="flex min-w-0 flex-col">
+      {/* <ModelsSidebarStatic /> */}
+      <main>
         <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
-          <MobileSidebar />
+          {/* <MobileSidebar /> */}
           <h1 className="font-semibold">LiveKit Demo</h1>
         </header>
-        <div className="flex-1 min-w-0 p-4">
+        <div className="w-full">
           <LiveKitContainer />
           <div />
         </div>

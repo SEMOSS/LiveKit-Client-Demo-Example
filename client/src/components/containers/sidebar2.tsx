@@ -1,10 +1,6 @@
-// src/components/containers/ModelsSidebarStatic.tsx
 import { observer } from "mobx-react-lite";
 import { Link } from "react-router-dom";
 import { Server } from "lucide-react";
-import { GrWindows } from "react-icons/gr";
-import { RiImageCircleAiFill } from "react-icons/ri";
-import { LuSpeech } from "react-icons/lu";
 import { BsSoundwave } from "react-icons/bs";
 import TestButton from "../test/testButton";
 
