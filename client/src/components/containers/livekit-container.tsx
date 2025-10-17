@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../../@providers/components/ui/button";
 import {
   Card,
@@ -15,7 +15,17 @@ import { Badge } from "../../@providers/components/ui/badge";
 import { Video, Users, Wifi, WifiOff, Mic } from "lucide-react";
 import { liveKitGetToken, liveKitListRooms } from "../../pixels/pixel-calls";
 import { Room, RoomEvent } from "livekit-client";
+import { getAudioModels, AudioModel } from "../../pixels/pixel-calls";
 import { setLogLevel, LogLevel } from "livekit-client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectLabel,
+  SelectGroup,
+} from "../../@providers/components/ui/select";
 setLogLevel(LogLevel.debug);
 
 type LiveKitContainerProps = {
@@ -31,6 +41,17 @@ interface RoomInfo {
   numParticipants_: number;
 }
 
+const OPERATIONS = [
+  {
+    id: "turn_based_transcription",
+    name: "Turn-Based Transcription",
+  },
+  {
+    id: "real_time_transcription",
+    name: "Real-Time Transcription",
+  },
+];
+
 const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
   onEnableMedia,
 }) => {
@@ -43,6 +64,44 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
   const [transcriptionText, setTranscriptionText] = useState("");
+  const [audioModels, setAudioModels] = useState<AudioModel[]>([]);
+  const [selectedAudioModel, setSelectedAudioModel] =
+    useState<AudioModel | null>(null);
+  const [selectedOperation, setSelectedOperation] = useState<string>(
+    OPERATIONS[0].id
+  );
+  const [isLoadingAudioModels, setIsLoadingAudioModels] = useState(false);
+  const [audioModelsError, setAudioModelsError] = useState<string | null>(null);
+
+  // Load audio models on mount
+  useEffect(() => {
+    let isSubscribed = true;
+    const load = async () => {
+      try {
+        setIsLoadingAudioModels(true);
+        setAudioModelsError(null);
+        const models = await getAudioModels();
+        if (!isSubscribed) return;
+        setAudioModels(models);
+        // Default to first model if available
+        if (models && models.length > 0) {
+          setSelectedAudioModel(models[0]);
+        }
+      } catch (e) {
+        if (!isSubscribed) return;
+        console.error("Failed to load audio models", e);
+        setAudioModelsError(
+          e instanceof Error ? e.message : "Failed to load audio models"
+        );
+      } finally {
+        if (isSubscribed) setIsLoadingAudioModels(false);
+      }
+    };
+    load();
+    return () => {
+      isSubscribed = false;
+    };
+  }, []);
 
   const connectToExistingRoom = async (roomId: string) => {
     try {
@@ -101,8 +160,12 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
       const finalRoomName = roomName.trim() || `room-${Date.now()}`;
       console.log("Room name: ", finalRoomName);
 
-      const engineId = "8ec0d39f-d90d-4587-b44c-e62ab13df325";
-      const operation = "real_time_transcription";
+      const engineId = selectedAudioModel?.id;
+      const operation = selectedOperation;
+
+      if (!engineId) {
+        throw new Error("No audio model selected");
+      }
 
       const response = await liveKitGetToken(
         engineId,
@@ -235,6 +298,77 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
               </div>
             )}
 
+            {/* Audio Model Selector */}
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Audio Model</div>
+              <Select
+                disabled={
+                  isConnecting ||
+                  isConnected ||
+                  isLoadingAudioModels ||
+                  audioModels.length === 0
+                }
+                value={selectedAudioModel?.id ?? ""}
+                onValueChange={(val) => {
+                  const model = audioModels.find((m) => m.id === val) || null;
+                  setSelectedAudioModel(model);
+                }}
+              >
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue
+                    placeholder={
+                      isLoadingAudioModels
+                        ? "Loading audio models..."
+                        : audioModels.length === 0
+                        ? "No audio models found"
+                        : "Select an audio model"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {audioModels.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>Available Models</SelectLabel>
+                      {audioModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
+              {audioModelsError && (
+                <div className="text-xs text-destructive">
+                  {audioModelsError}
+                </div>
+              )}
+            </div>
+
+            {/* Operation Selector */}
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Operation</div>
+              <Select
+                disabled={isConnecting || isConnected}
+                value={selectedOperation}
+                onValueChange={(val) => setSelectedOperation(val)}
+              >
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Select an operation" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Available Operations</SelectLabel>
+                    {OPERATIONS.map((op) => (
+                      <SelectItem key={op.id} value={op.id}>
+                        {op.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Enable Media */}
             <div className="space-y-2">
               <Button
@@ -253,7 +387,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
               {!isConnected ? (
                 <Button
                   onClick={connectToRoom}
-                  disabled={isConnecting}
+                  disabled={isConnecting || !selectedAudioModel}
                   className="w-full h-12 text-base font-medium"
                   size="lg"
                 >

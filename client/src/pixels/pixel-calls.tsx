@@ -90,6 +90,11 @@ export const liveKitListParticipants = async () => {
   return output;
 };
 
+export interface AudioModel {
+  id: string;
+  name: string;
+}
+
 export const getAudioModels = async () => {
   const pixel = `MyEngines(engineTypes = [ "MODEL" ]);`;
 
@@ -98,5 +103,13 @@ export const getAudioModels = async () => {
     throw new Error(errors.join(""));
   }
   const { output } = pixelReturn[0];
-  return output;
+
+  let audioModels: AudioModel[] = (output as any[])
+    .filter((model: any) => model?.tag === "audio")
+    .map((model: any) => ({
+      id: model.database_id,
+      name: model.database_name,
+    }));
+
+  return audioModels;
 };

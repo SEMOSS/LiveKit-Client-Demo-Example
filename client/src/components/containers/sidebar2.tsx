@@ -6,6 +6,7 @@ import { GrWindows } from "react-icons/gr";
 import { RiImageCircleAiFill } from "react-icons/ri";
 import { LuSpeech } from "react-icons/lu";
 import { BsSoundwave } from "react-icons/bs";
+import TestButton from "../test/testButton";
 
 const ModelsSidebarStatic = observer(() => {
   return (
@@ -35,23 +36,13 @@ const ModelsSidebarStatic = observer(() => {
 
       {/* Groups */}
       <div className="p-2 space-y-4">
-        {/* Image-Text-to-Text */}
         {/* <div>
           <div className="h-8 flex items-center px-2 text-xs font-medium text-sidebar-foreground/70">
-            Image-Text-to-Text
+            Testing
           </div>
           <ul className="flex w-full min-w-0 flex-col gap-1">
             <li>
-              <Link
-                to="/"
-                className="
-                  flex min-w-0 items-center gap-2 rounded-md p-2 text-sm
-                  hover:bg-sidebar-accent hover:text-sidebar-accent-foreground
-                "
-              >
-                <GrWindows className="size-4 shrink-0" />
-                <span className="truncate">microsoft/Florence-2-large</span>
-              </Link>
+              <TestButton />
             </li>
           </ul>
         </div> */}
