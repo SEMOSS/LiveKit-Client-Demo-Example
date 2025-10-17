@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "../../@providers/components/ui/card";
 import { Badge } from "../../@providers/components/ui/badge";
-import { Video, Users, Wifi, WifiOff, Mic } from "lucide-react";
+import { Video, Users, Wifi, WifiOff, Mic, Check } from "lucide-react";
 import type { Room } from "livekit-client";
 import type { AudioModel } from "../../pixels/pixel-calls";
 import {
@@ -31,6 +31,10 @@ const OPERATIONS = [
     id: "real_time_transcription",
     name: "Real-Time Transcription",
   },
+  {
+    id: "speech_to_speech_realtime",
+    name: "Real-Time Speech-to-Speech",
+  },
 ];
 
 interface RoomConnectionCardProps {
@@ -43,6 +47,7 @@ interface RoomConnectionCardProps {
   selectedOperation: string;
   isLoadingAudioModels: boolean;
   audioModelsError: string | null;
+  isMediaEnabled: boolean;
   onConnect: () => void;
   onDisconnect: () => void;
   onEnableMedia: () => void;
@@ -60,6 +65,7 @@ export function RoomConnectionCard({
   selectedOperation,
   isLoadingAudioModels,
   audioModelsError,
+  isMediaEnabled,
   onConnect,
   onDisconnect,
   onEnableMedia,
@@ -197,11 +203,24 @@ export function RoomConnectionCard({
           <Button
             onClick={onEnableMedia}
             disabled={!isConnected || !room}
-            variant="secondary"
-            className="w-full h-10"
+            variant={isMediaEnabled ? "default" : "secondary"}
+            className={`w-full h-10 transition-colors ${
+              isMediaEnabled
+                ? "bg-emerald-500 text-white hover:bg-emerald-600 border border-emerald-500"
+                : ""
+            }`}
             size="sm"
+            aria-pressed={isMediaEnabled}
           >
-            <Mic className="w-4 h-4 mr-2" /> Enable Camera & Mic
+            {isMediaEnabled ? (
+              <>
+                <Check className="w-4 h-4 mr-2" /> Camera & Mic Enabled
+              </>
+            ) : (
+              <>
+                <Mic className="w-4 h-4 mr-2" /> Enable Camera & Mic
+              </>
+            )}
           </Button>
         </div>
 

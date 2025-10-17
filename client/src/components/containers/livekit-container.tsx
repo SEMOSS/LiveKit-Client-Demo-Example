@@ -1,9 +1,7 @@
-"use client";
-
 import type React from "react";
 import { useEffect, useState } from "react";
 import { liveKitGetToken, liveKitListRooms } from "../../pixels/pixel-calls";
-import { Room, RoomEvent } from "livekit-client";
+import { Room, RoomEvent, Track } from "livekit-client";
 import { getAudioModels, type AudioModel } from "../../pixels/pixel-calls";
 import { setLogLevel, LogLevel } from "livekit-client";
 import { RoomConnectionCard } from "../v2components/room-connection-card";
@@ -54,8 +52,8 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
   );
   const [isLoadingAudioModels, setIsLoadingAudioModels] = useState(false);
   const [audioModelsError, setAudioModelsError] = useState<string | null>(null);
+  const [isMediaEnabled, setIsMediaEnabled] = useState(false);
 
-  // Load audio models on mount
   useEffect(() => {
     let isSubscribed = true;
     const load = async () => {
@@ -84,7 +82,6 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
     };
   }, []);
 
-  // Load rooms on mount
   useEffect(() => {
     handleListRooms();
   }, []);
@@ -93,6 +90,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
     try {
       setIsConnecting(true);
       setError(null);
+      setIsMediaEnabled(false);
 
       const newRoom = new Room({
         adaptiveStream: true,
@@ -103,7 +101,6 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
         console.log("Connected to room", newRoom.name);
         setIsConnected(true);
         setIsConnecting(false);
-        // Refresh room list after connecting
         handleListRooms();
       });
 
@@ -111,7 +108,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
         console.log("Disconnected from room");
         setIsConnected(false);
         setRoom(null);
-        // Refresh room list after disconnecting
+        setIsMediaEnabled(false);
         handleListRooms();
       });
 
@@ -128,6 +125,29 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
           setTranscriptionText((prev) => prev + (prev ? " " : "") + data.text);
         }
       });
+
+      newRoom.on(RoomEvent.AudioPlaybackStatusChanged, (playing) => {
+        console.log("AudioPlaybackStatusChanged:", playing);
+      });
+
+      newRoom.on(
+        RoomEvent.TrackSubscribed,
+        (track, publication, participant) => {
+          console.log(
+            "TrackSubscribed:",
+            participant.identity,
+            publication.kind
+          );
+          if (track.kind === Track.Kind.Audio) {
+            console.log("Subscribed to remote audio; should be audible now.");
+            const el = track.attach();
+            el.autoplay = true;
+            el.muted = false;
+            document.body.appendChild(el);
+            console.log("Attached remote bot audio from", participant.identity);
+          }
+        }
+      );
 
       const finalRoomName = roomName.trim() || `room-${Date.now()}`;
       const engineId = selectedAudioModel?.id;
@@ -163,7 +183,13 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
 
   const enableCameraAndMic = async () => {
     if (room) {
-      await room.localParticipant.enableCameraAndMicrophone();
+      try {
+        await room.startAudio();
+        console.log("startAudio(): playing");
+        await room.localParticipant.enableCameraAndMicrophone();
+      } catch (error) {
+        console.log("startAudio(): blocked", error);
+      }
     }
   };
 
@@ -174,6 +200,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
       } else {
         await enableCameraAndMic();
       }
+      setIsMediaEnabled(true);
     } catch (e) {
       console.error("Failed to enable media:", e);
       setError(
@@ -189,6 +216,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
       room.disconnect();
       setTranscriptionText("");
     }
+    setIsMediaEnabled(false);
   };
 
   const handleListRooms = async () => {
@@ -226,6 +254,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
             selectedOperation={selectedOperation}
             isLoadingAudioModels={isLoadingAudioModels}
             audioModelsError={audioModelsError}
+            isMediaEnabled={isMediaEnabled}
             onConnect={connectToRoom}
             onDisconnect={disconnectFromRoom}
             onEnableMedia={handleEnableMediaClick}
