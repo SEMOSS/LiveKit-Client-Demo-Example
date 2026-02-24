@@ -35,7 +35,7 @@ export const getOpenInsights = async () => {
 
 export const getAvailableEngines = async () => {
   const { errors, pixelReturn } = await runPixel(
-    `MyEngines ( engineTypes = [ "MODEL" ] ) ;`
+    `MyEngines ( engineTypes = [ "MODEL" ] ) ;`,
   );
 
   if (errors.length > 0) {
@@ -54,11 +54,22 @@ interface LiveKitTokenResponse {
 export const liveKitGetToken = async (
   engineId: string,
   operation: string,
-  roomName: string
+  roomName: string,
+  targetLang?: string,
+  sourceLang?: string,
 ): Promise<LiveKitTokenResponse> => {
-  let pixel = `LiveKitJoinRoom()`;
+  let pixel = `LiveKitJoinRoom();`;
+  const paramMap = {};
+  if (targetLang) {
+    paramMap["targetLang"] = targetLang;
+  }
+  if (sourceLang) {
+    paramMap["sourceLang"] = sourceLang;
+  }
   if (roomName != null) {
-    pixel = `LiveKitJoinRoom(engine=["${engineId}"], operation=["${operation}"], roomId=["${roomName}"])`;
+    pixel = `LiveKitJoinRoom(engine=["${engineId}"], operation=["${operation}"], roomId=["${roomName}"], paramValues = [${JSON.stringify(
+      paramMap,
+    )}]);`;
   }
   const { errors, pixelReturn } = await runPixel(pixel);
 

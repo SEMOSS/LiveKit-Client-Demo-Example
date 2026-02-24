@@ -28,13 +28,28 @@ const OPERATIONS = [
     name: "Turn-Based Transcription",
   },
   {
-    id: "real_time_transcription",
-    name: "Real-Time Transcription",
+    id: "turn_based_translation",
+    name: "Turn-Based Translation",
   },
   {
     id: "speech_to_speech_realtime",
     name: "Real-Time Speech-to-Speech",
   },
+];
+
+const TRANSLATION_LANGUAGES = [
+  { code: "en", name: "English" },
+  { code: "es", name: "Spanish" },
+  { code: "fr", name: "French" },
+  { code: "de", name: "German" },
+  { code: "it", name: "Italian" },
+  { code: "pt", name: "Portuguese" },
+  { code: "ru", name: "Russian" },
+  { code: "ar", name: "Arabic" },
+  { code: "hi", name: "Hindi" },
+  { code: "ja", name: "Japanese" },
+  { code: "ko", name: "Korean" },
+  { code: "zh", name: "Chinese" },
 ];
 
 interface RoomConnectionCardProps {
@@ -53,6 +68,10 @@ interface RoomConnectionCardProps {
   onEnableMedia: () => void;
   onAudioModelChange: (model: AudioModel | null) => void;
   onOperationChange: (operation: string) => void;
+  sourceLanguage: string;
+  targetLanguage: string;
+  onSourceLanguageChange: (language: string) => void;
+  onTargetLanguageChange: (language: string) => void;
 }
 
 export function RoomConnectionCard({
@@ -71,6 +90,10 @@ export function RoomConnectionCard({
   onEnableMedia,
   onAudioModelChange,
   onOperationChange,
+  sourceLanguage,
+  targetLanguage,
+  onSourceLanguageChange,
+  onTargetLanguageChange,
 }: RoomConnectionCardProps) {
   return (
     <Card className="w-full shadow-lg">
@@ -151,8 +174,8 @@ export function RoomConnectionCard({
                   isLoadingAudioModels
                     ? "Loading audio models..."
                     : audioModels.length === 0
-                    ? "No audio models found"
-                    : "Select an audio model"
+                      ? "No audio models found"
+                      : "Select an audio model"
                 }
               />
             </SelectTrigger>
@@ -197,6 +220,55 @@ export function RoomConnectionCard({
             </SelectContent>
           </Select>
         </div>
+
+        {selectedOperation === "turn_based_translation" && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Source Language</div>
+              <Select
+                disabled={isConnecting || isConnected}
+                value={sourceLanguage}
+                onValueChange={onSourceLanguageChange}
+              >
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Select source language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Two-Letter AWS Translate Codes</SelectLabel>
+                    {TRANSLATION_LANGUAGES.map((language) => (
+                      <SelectItem key={language.code} value={language.code}>
+                        {language.name} ({language.code})
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Target Language</div>
+              <Select
+                disabled={isConnecting || isConnected}
+                value={targetLanguage}
+                onValueChange={onTargetLanguageChange}
+              >
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Select target language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Two-Letter AWS Translate Codes</SelectLabel>
+                    {TRANSLATION_LANGUAGES.map((language) => (
+                      <SelectItem key={language.code} value={language.code}>
+                        {language.name} ({language.code})
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
 
         {/* Enable Media */}
         <div className="space-y-2">

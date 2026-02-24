@@ -24,12 +24,17 @@ interface RoomInfo {
 
 const OPERATIONS = [
   {
+    id: "turn_based_translation",
+    name: "Turn-Based Translation",
+  },
+  {
     id: "turn_based_transcription",
     name: "Turn-Based Transcription",
   },
+
   {
-    id: "real_time_transcription",
-    name: "Real-Time Transcription",
+    id: "speech_to_speech_realtime",
+    name: "Real-Time Speech-to-Speech",
   },
 ];
 
@@ -48,11 +53,13 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
   const [selectedAudioModel, setSelectedAudioModel] =
     useState<AudioModel | null>(null);
   const [selectedOperation, setSelectedOperation] = useState<string>(
-    OPERATIONS[0].id
+    OPERATIONS[0].id,
   );
   const [isLoadingAudioModels, setIsLoadingAudioModels] = useState(false);
   const [audioModelsError, setAudioModelsError] = useState<string | null>(null);
   const [isMediaEnabled, setIsMediaEnabled] = useState(false);
+  const [sourceLanguage, setSourceLanguage] = useState("en");
+  const [targetLanguage, setTargetLanguage] = useState("es");
 
   useEffect(() => {
     let isSubscribed = true;
@@ -70,7 +77,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
         if (!isSubscribed) return;
         console.error("Failed to load audio models", e);
         setAudioModelsError(
-          e instanceof Error ? e.message : "Failed to load audio models"
+          e instanceof Error ? e.message : "Failed to load audio models",
         );
       } finally {
         if (isSubscribed) setIsLoadingAudioModels(false);
@@ -120,7 +127,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
         if (data.type === "transcription") {
           console.log(
             `Received transcription from ${participant?.identity}:`,
-            data.text
+            data.text,
           );
           setTranscriptionText((prev) => prev + (prev ? " " : "") + data.text);
         }
@@ -136,7 +143,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
           console.log(
             "TrackSubscribed:",
             participant.identity,
-            publication.kind
+            publication.kind,
           );
           if (track.kind === Track.Kind.Audio) {
             console.log("Subscribed to remote audio; should be audible now.");
@@ -146,21 +153,39 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
             document.body.appendChild(el);
             console.log("Attached remote bot audio from", participant.identity);
           }
-        }
+        },
       );
 
       const finalRoomName = roomName.trim() || `room-${Date.now()}`;
       const engineId = selectedAudioModel?.id;
       const operation = selectedOperation;
+      const shouldSendTranslationParams =
+        operation === "turn_based_translation";
+      const resolvedSourceLanguage = shouldSendTranslationParams
+        ? sourceLanguage
+        : undefined;
+      const resolvedTargetLanguage = shouldSendTranslationParams
+        ? targetLanguage
+        : undefined;
 
       if (!engineId) {
         throw new Error("No audio model selected");
+      }
+      if (
+        shouldSendTranslationParams &&
+        (sourceLanguage.length !== 2 || targetLanguage.length !== 2)
+      ) {
+        throw new Error(
+          "Translation languages must be two-letter AWS Translate codes.",
+        );
       }
 
       const response = await liveKitGetToken(
         engineId,
         operation,
-        finalRoomName
+        finalRoomName,
+        resolvedTargetLanguage,
+        resolvedSourceLanguage,
       );
       const token = response.jwt || (response["jwt"] as string);
 
@@ -175,7 +200,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
     } catch (err) {
       console.error("Failed to connect to room:", err);
       setError(
-        err instanceof Error ? err.message : "Failed to connect to room"
+        err instanceof Error ? err.message : "Failed to connect to room",
       );
       setIsConnecting(false);
     }
@@ -206,7 +231,7 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
       setError(
         e instanceof Error
           ? e.message
-          : "Failed to enable camera and microphone"
+          : "Failed to enable camera and microphone",
       );
     }
   };
@@ -260,6 +285,10 @@ const LiveKitContainer: React.FC<LiveKitContainerProps> = ({
             onEnableMedia={handleEnableMediaClick}
             onAudioModelChange={setSelectedAudioModel}
             onOperationChange={setSelectedOperation}
+            sourceLanguage={sourceLanguage}
+            targetLanguage={targetLanguage}
+            onSourceLanguageChange={setSourceLanguage}
+            onTargetLanguageChange={setTargetLanguage}
           />
         </div>
       </div>
